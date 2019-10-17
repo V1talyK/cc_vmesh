@@ -16,7 +16,7 @@ xy0 = collect(Iterators.product(0:10:99,0:10:99))[:];
   xy = zeros(Float64,length(xy0),2);
   for (k,v) in enumerate(xy0) xy[k,:].=v; end
 
-tess, rc = makeCell(xy)
+tess, rc = makeCell(xy, bnd)
 
 x, y = getplotxy(voronoiedges(tess))
 set_default_plot_size(15cm, 15cm)

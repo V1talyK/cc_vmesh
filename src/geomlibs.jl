@@ -89,7 +89,7 @@ function SegIntersect(xy1::Array{Float64,2},xy2::Array{Float64,1})
     flag2[:,2] = skalProd(D,A,B).<=0;
     flag2[:,3] = skalProd(A,C,D).<=0;
     flag2[:,4] = skalProd(B,C,D).<=0;
-    return (fl1 & fl2) | any(flag & flag2, 2)[:]
+    return (fl1 .& fl2) .| any(flag .& flag2, dims=2)[:]
 end
 
 function SegIntersectSL(A::Array{Float64,2},B::Array{Float64,2},xy2::Array{Float64,1},
@@ -317,11 +317,11 @@ function inPolygon3(x, y, xp, yp)
     fl2=falses(length(x))
     c=falses(length(x))
     @inbounds for i=2:length(xp)
-       fl1[:] = ((yp[i].<=y) & (y.<yp[i-1])) | ((yp[i-1].<=y) & (y.<yp[i]))
+       fl1[:] = ((yp[i].<=y) .& (y.<yp[i-1])) .| ((yp[i-1].<=y) .& (y.<yp[i]))
        ib = findall(fl1);
-       fl2[:] = false;
-       fl2[ib] = (view(x,ib).> (xp[i-1] - xp[i]).* (view(y,ib) - yp[i])./ (yp[i-1] - yp[i]) + xp[i])
-       ia = findall(fl1 & fl2)
+       fl2[:] .= false;
+       fl2[ib] = (view(x,ib).> (xp[i-1] - xp[i]).* (view(y,ib) .- yp[i])./ (yp[i-1] .- yp[i]) .+ xp[i])
+       ia = findall(fl1 .& fl2)
        c[ia] = trues(length(ia)) - c[ia]
     end
    return convert(Array{Bool,1},c)
