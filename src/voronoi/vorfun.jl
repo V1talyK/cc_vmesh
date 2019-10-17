@@ -22,19 +22,66 @@ function makeCell(xy, bnd)
     chan = voronoiedges(tess)
 
     Cv = [i for i in chan]
+    Cv1, bnd_flag = makeCellvsBondary(Cv,bx,by);
+
+    rc = makeRC(Cv1,x,y)
+
+    return tess, rc, Cv1, Cv
+end
+function getPointToCell(Cv,xc,yc)
+    xca = map(v->v._generator_a._x,Cv)
+    xcb = map(v->v._generator_b._x,Cv)
+    yca = map(v->v._generator_a._y,Cv)
+    ycb = map(v->v._generator_b._y,Cv)
+
+    xa = map(v->v._a._x,Cv)
+    xb = map(v->v._b._x,Cv)
+    ya = map(v->v._a._y,Cv)
+    yb = map(v->v._b._y,Cv)
+
+    fl = falses(length(xca))
+    pnts = Vector(undef,length(xc))
+    for i=1:length(xc)
+        fl.=false;
+        ir = findall((xca.==xc[i]) .& (yca.==yc[i]))
+        ic = findall((xcb.==xc[i]) .& (ycb.==yc[i]))
+        fl[ir].=true;
+        fl[ic].=true;
+
+        pnts[i] = [xa[fl],xb[fl]],[ya[fl],yb[fl]]
+        if any(bnd_flag[fl].!=0)
+            ia = findall(bnd_flag[fl].!=0)
+            if length(unique(bnd_flag[fl][ia]))>1
+                px1 = xa[fl][ia]
+                ibo = maximum(unique(bnd_flag[fl][ia]))
+                bxy[ibbo[ibo],:]
+            else
+                px1 = xa[fl][ia]
+            end
+        end
+
+        if (length(ir)>0) .& (length(ic)>0)
+            k+=1;
+            rc[k,:] = [ir[1],ic[1]]
+        end
+    end
+
+    return
+end
+function makeCellvsBondary(Cv,bx,by)
     Cv, ia, xy_ab, ab = remPointOutBondary(Cv,bx,by);
     ABC_l1 = lineEq(xy_ab[:,1:2],xy_ab[:,3:4])
 
     bxy = hcat(bx,by);
     ABC_l2 = lineEq(view(bxy,1:length(bx)-1,:),view(bxy,2:length(bx),:))
 
-    bond_flag = zeros(Int32,length(Cv))
+    bnd_flag = zeros(Int32,length(Cv))
 
     for j=1:length(bx)-1
         xy2 = Float64.([bx[j],by[j],bx[j+1],by[j+1]])
         flag_int = SegIntersect(xy_ab,xy2)
         ib = findall(flag_int)
-        bond_flag[findall(ia)[ib]] .= j;
+        bnd_flag[findall(ia)[ib]] .= j;
         for (k,v) in enumerate(flag_int)
             if v
                 xi = lineIntersect(ABC_l1[k,:]',ABC_l2[j,:]')
@@ -59,10 +106,7 @@ function makeCell(xy, bnd)
                     Point2D(Cv[k]._generator_b._x, Cv[k]._generator_b._y))
         end
     end
-
-    rc = makeRC(Cv,x,y)
-
-    return tess, rc, Cv1, Cv
+    return Cv1, bnd_flag
 end
 
 function makeRC(Cv,xc,yc)
