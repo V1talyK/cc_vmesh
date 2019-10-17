@@ -22,59 +22,47 @@ function makeCell(xy, bnd)
     chan = voronoiedges(tess)
 
     Cv = [i for i in chan]
-    x1 = map(v->v._a._x,Cv)
-    x2 = map(v->v._b._x,Cv)
-    y1 = map(v->v._a._y,Cv)
-    y2 = map(v->v._b._y,Cv)
+    Cv, ia, xy_ab, ab = remPointOutBondary(Cv,bx,by);
+    ABC_l1 = lineEq(xy_ab[:,1:2],xy_ab[:,3:4])
 
-    xy1 = hcat(x1,y1,x2,y2)
     bxy = hcat(bx,by);
     ABC_l2 = lineEq(view(bxy,1:length(bx)-1,:),view(bxy,2:length(bx),:))
 
-    pin1 = inPolygon(x1, y1, bx, by)
-    pin2 = inPolygon(x2, y2, bx, by)
-    ia = findall(.!(pin1 .& pin2))
-    ic = .!(.!pin1 .& .!pin2);
+    bond_flag = zeros(Int32,length(Cv))
 
     for j=1:length(bx)-1
         xy2 = Float64.([bx[j],by[j],bx[j+1],by[j+1]])
-        flag_int = SegIntersect(xy1[ia,:],xy2)
+        flag_int = SegIntersect(xy_ab,xy2)
         ib = findall(flag_int)
-
-        ABC_l1 = lineEq(xy1[ia[ib],1:2],xy1[ia[ib],3:4])
-        k=0
-        for i=1:length(flag_int)
-            if flag_int[i]
-                k+=1;
+        bond_flag[findall(ia)[ib]] .= j;
+        for (k,v) in enumerate(flag_int)
+            if v
                 xi = lineIntersect(ABC_l1[k,:]',ABC_l2[j,:]')
-                fl = inPolygon(xy1[ia[i],1:2:3], xy1[ia[i],2:2:4], bx, by)
-                if !fl[1]
-                    x1[ia[i]]=xi[1]
-                    y1[ia[i]]=xi[2]
-                elseif !fl[2]
-                    x2[ia[i]]=xi[1]
-                    y2[ia[i]]=xi[2]
+                if ab[k]
+                    xy_ab[k,1:2]=xi
+                else
+                    xy_ab[k,3:4]=xi
                 end
             end
         end
     end
 
-    Cv1=Vector(undef, length(Cv))
-    for (k,v) in enumerate(Cv)
-        Cv1[k]=VoronoiDelaunay.VoronoiEdge(Point2D(x1[k], y1[k]),
-                                      Point2D(x2[k], y2[k]),
-                                      Point2D(v._generator_a._x, v._generator_a._y),
-                                      Point2D(v._generator_b._x, v._generator_b._y))
-
-        # v._a._x = x1[k]
-        # v._b._x = x2[k]
-        # v._a._y = y1[k]
-        # v._b._y = y2[k]
+    Cv1=copy(Cv)
+    k1=0;
+    for (k,v) in enumerate(ia)
+        if v
+          k1+=1;
+          Cv1[k]=VoronoiDelaunay.VoronoiEdge(
+                    Point2D(xy_ab[k1,1], xy_ab[k1,2]),
+                    Point2D(xy_ab[k1,3], xy_ab[k1,4]),
+                    Point2D(Cv[k]._generator_a._x, Cv[k]._generator_a._y),
+                    Point2D(Cv[k]._generator_b._x, Cv[k]._generator_b._y))
+        end
     end
 
     rc = makeRC(Cv,x,y)
 
-    return tess, rc, Cv1[ic], Cv
+    return tess, rc, Cv1, Cv
 end
 
 function makeRC(Cv,xc,yc)
@@ -94,4 +82,22 @@ function makeRC(Cv,xc,yc)
         end
     end
     return rc[1:k,:]
+end
+function remPointOutBondary(Cv,bx,by)
+    xa = map(v->v._a._x,Cv)
+    xb = map(v->v._b._x,Cv)
+    ya = map(v->v._a._y,Cv)
+    yb = map(v->v._b._y,Cv)
+
+    pin1 = inPolygon(xa, ya, bx, by)
+    pin2 = inPolygon(xb, yb, bx, by)
+    ic = .!(.!pin1 .& .!pin2);
+    ia = .!(pin1 .& pin2)[ic]
+
+    ab = falses(length(pin1));
+    ab[pin1.==false] .=true;
+    ab[pin2.==false] .=false;
+
+    xy = hcat(xa,ya,xb,yb)
+   return Cv[ic], ia, xy[ic,:][ia,:], ab[ic][ia]
 end
