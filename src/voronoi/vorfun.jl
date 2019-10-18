@@ -39,12 +39,17 @@ function getPointToCell(Cv,xc,yc)
     ya = map(v->v._a._y,Cv)
     yb = map(v->v._b._y,Cv)
 
+    xcf = vcat(xca,xcb)
+    ycf = vcat(yca,ycb)
+    xyc = unique(collect(zip(xcf,ycf)))
+
+
     fl = falses(length(xca))
     pnts = Vector(undef,length(xc))
-    for i=1:length(xc)
+    for i=1:length(xyc)
         fl.=false;
-        ir = findall((xca.==xc[i]) .& (yca.==yc[i]))
-        ic = findall((xcb.==xc[i]) .& (ycb.==yc[i]))
+        ir = findall((xca.==xyc[i][1]) .& (yca.-yc[i].<1e-10))
+        ic = findall((xcb.==xyc[i][2].<1e-10) .& (ycb.-yc[i].<1e-10))
         fl[ir].=true;
         fl[ic].=true;
 
