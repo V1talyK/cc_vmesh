@@ -29,15 +29,15 @@ function makeCell(xy, bnd)
     return tess, rc, Cv1, Cv
 end
 function getPointToCell(Cv,xc,yc)
-    xca = map(v->v._generator_a._x,Cv)
-    xcb = map(v->v._generator_b._x,Cv)
-    yca = map(v->v._generator_a._y,Cv)
-    ycb = map(v->v._generator_b._y,Cv)
+    xca = map(v->v._generator_a._x,Cv1)
+    xcb = map(v->v._generator_b._x,Cv1)
+    yca = map(v->v._generator_a._y,Cv1)
+    ycb = map(v->v._generator_b._y,Cv1)
 
-    xa = map(v->v._a._x,Cv)
-    xb = map(v->v._b._x,Cv)
-    ya = map(v->v._a._y,Cv)
-    yb = map(v->v._b._y,Cv)
+    xa = map(v->v._a._x,Cv1)
+    xb = map(v->v._b._x,Cv1)
+    ya = map(v->v._a._y,Cv1)
+    yb = map(v->v._b._y,Cv1)
 
     xcf = vcat(xca,xcb)
     ycf = vcat(yca,ycb)
@@ -45,33 +45,52 @@ function getPointToCell(Cv,xc,yc)
 
 
     fl = falses(length(xca))
-    pnts = Vector(undef,length(xc))
+    pnts = Vector(undef,length(xyc))
+    ibbo = [length(bx)-1; collect(1:length(bx)-2)]
     for i=1:length(xyc)
         fl.=false;
-        ir = findall((xca.==xyc[i][1]) .& (yca.-yc[i].<1e-10))
-        ic = findall((xcb.==xyc[i][2].<1e-10) .& (ycb.-yc[i].<1e-10))
+        ir = findall((xca.==xyc[i][1]) .& (yca.==xyc[i][2]))
+        ic = findall((xcb.==xyc[i][1]) .& (ycb.==xyc[i][2]))
         fl[ir].=true;
         fl[ic].=true;
 
         pnts[i] = [xa[fl],xb[fl]],[ya[fl],yb[fl]]
-        if any(bnd_flag[fl].!=0)
-            ia = findall(bnd_flag[fl].!=0)
-            if length(unique(bnd_flag[fl][ia]))>1
-                px1 = xa[fl][ia]
-                ibo = maximum(unique(bnd_flag[fl][ia]))
-                bxy[ibbo[ibo],:]
+        if any(bnd_flag[fl,1].!=0)
+            ia = findall(bnd_flag[fl,1].!=0)
+            if length(unique(bnd_flag[fl,1][ia]))>1
+                ibo = maximum(unique(bnd_flag[fl,1][ia]))
+                bp = bxy[ibbo[ibo],:]
+                newp = Vector(undef,length(bxy[ibbo[ibo],1])+1);
+                for j=1:length(newp)
+                    if bnd_flag[fl,2][ia][j]==1
+                        newp[j] = [[xa[fl][j],bp[1]],[ya[fl][j],bp[1]]]
+                    else
+                        newp[j] = [[xb[fl][j],bp[1]],[yb[fl][j],bp[1]]]
+                    end
+                end
             else
-                px1 = xa[fl][ia]
+                newp = Vector(undef,1);
+                for j=1:length(ia)
+                    if bnd_flag[fl,2][ia][j]==1
+                        newp[1] = [[xa[fl][j],0],[ya[fl][j],0]]
+                    else
+                        newp[1] = [[xb[fl][j],0],[yb[fl][j],0]]
+                    end
+                    if bnd_flag[fl,2][ia][j]==2
+                        newp[1][1][2] = xa[fl][j];
+                        newp[1][2][2] = ya[fl][j];
+                    else
+                        newp[1][1][2] = xb[fl][j];
+                        newp[1][2][2] = yb[fl][j];
+                    end
+                end
             end
+            pnts[i] = [pnts[i],newp]
         end
 
-        if (length(ir)>0) .& (length(ic)>0)
-            k+=1;
-            rc[k,:] = [ir[1],ic[1]]
-        end
     end
 
-    return
+    return nothing
 end
 function makeCellvsBondary(Cv,bx,by)
     Cv, ia, xy_ab, ab = remPointOutBondary(Cv,bx,by);
@@ -80,20 +99,24 @@ function makeCellvsBondary(Cv,bx,by)
     bxy = hcat(bx,by);
     ABC_l2 = lineEq(view(bxy,1:length(bx)-1,:),view(bxy,2:length(bx),:))
 
-    bnd_flag = zeros(Int32,length(Cv))
+    bnd_flag = zeros(Int32,length(Cv),2)
+    fia = findall(ia);
 
     for j=1:length(bx)-1
         xy2 = Float64.([bx[j],by[j],bx[j+1],by[j+1]])
         flag_int = SegIntersect(xy_ab,xy2)
         ib = findall(flag_int)
-        bnd_flag[findall(ia)[ib]] .= j;
+        bnd_flag[findall(ia)[ib],1] .= j;
+
         for (k,v) in enumerate(flag_int)
             if v
                 xi = lineIntersect(ABC_l1[k,:]',ABC_l2[j,:]')
                 if ab[k]
                     xy_ab[k,1:2]=xi
+                    bnd_flag[fia[k],2] = 1;
                 else
                     xy_ab[k,3:4]=xi
+                    bnd_flag[fia[k],2] = 2;
                 end
             end
         end

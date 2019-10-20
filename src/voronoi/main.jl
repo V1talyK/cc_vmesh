@@ -20,7 +20,7 @@ xy0 = collect(Iterators.product(0:10:99,0:10:99))[:];
 bnd  = [0 0; 100 0; 100 100; 0 100; 0 0]
 tess, rc, Cv1, Cv = makeCell(xy,bnd)
 
-x, y = getplotxy(Cv)
+x, y = getplotxy(Cv1)
 xt, yt = getplotxy(delaunayedges(tess))
 
 
@@ -31,7 +31,8 @@ plot(layer(x=x, y=y, Geom.path),
      layer(x=xt, y=yt, Geom.path,Theme(default_color="orange")),
      #layer(x=[Cv1[42]._generator_a._x,Cv1[42]._generator_b._x],
      #y=[Cv1[42]._generator_a._y,Cv1[42]._generator_b._y]),
-     layer(x=map(x->x[1],xycp),y=map(x->x[2],xycp)),
+     #layer(x=map(x->x[1],xyc),y=map(x->x[2],xyc)),
+     layer(x=map(x->x[1],xyc)[bc],y=map(x->x[2],xyc)[bc]),
      Coord.cartesian(xmin=0.5, xmax=2.5, ymin=0.5, ymax=2.5))
 
 plot(layer(x=x, y=y, Geom.path),
@@ -41,17 +42,17 @@ plot(layer(x=x, y=y, Geom.path),
 
 plot(x=bnd[:,1], y=bnd[:,2], Geom.path)
 
-bc = falses(length(xcf))
-for i=1:length(xcf)
+bc = falses(length(xyc))
+for i=1:length(xyc)
     fl.=false;
-    ir = findall((xca.==xcf[i]) .& (yca.==ycf[i]))
-    ic = findall((xcb.==xcf[i]) .& (ycb.==ycf[i]))
+    ir = findall((xca.==xyc[i][1]) .& (yca.==xyc[i][2]))
+    ic = findall((xcb.==xyc[i][1]) .& (ycb.==xyc[i][2]))
     fl[ir].=true;
     fl[ic].=true;
-    println(sum(fl))
-    if any(bnd_flag[fl].!=0)
-        ia = findall(bnd_flag[fl].!=0)
-        println("$k _$(length(unique(bnd_flag[fl][ia])))")
+    #println(sum(fl))
+    if any(bnd_flag[fl,1].!=0)
+        ia = findall(bnd_flag[fl,1].!=0)
+        println("$i _$(length(unique(bnd_flag[fl,1][ia])))")
         bc[i]= true
     end
 
