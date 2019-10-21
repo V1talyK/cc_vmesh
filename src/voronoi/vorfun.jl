@@ -43,51 +43,59 @@ function getPointToCell(Cv,xc,yc)
     ycf = vcat(yca,ycb)
     xyc = unique(collect(zip(xcf,ycf)))
 
+    xab = hcat(xa,xb)
+    yab = hcat(ya,yb)
 
     fl = falses(length(xca))
     pnts = Vector(undef,length(xyc))
-    ibbo = [length(bx)-1; collect(1:length(bx)-2)]
+    ibbo = Set.(zip(collect(1:length(bx)-1),[length(bx)-1; collect(1:length(bx)-2)]))
+
+    bnd_ind = Vector(undef,length(xyc))
+    bnd_flg = Vector(undef,length(xyc))
+    bnd_ind2 = Vector(undef,length(xyc))
     for i=1:length(xyc)
         fl.=false;
         ir = findall((xca.==xyc[i][1]) .& (yca.==xyc[i][2]))
         ic = findall((xcb.==xyc[i][1]) .& (ycb.==xyc[i][2]))
         fl[ir].=true;
         fl[ic].=true;
+        bnd_ind[i] = bnd_flag[fl,1][bnd_flag[fl,1].!=0]
+        bnd_flg[i] = bnd_flag[fl,2][bnd_flag[fl,1].!=0]
+        bnd_ind2[i] = findall(fl)[bnd_flag[fl,1].!=0]
+    end
 
-        pnts[i] = [xa[fl],xb[fl]],[ya[fl],yb[fl]]
-        if any(bnd_flag[fl,1].!=0)
-            ia = findall(bnd_flag[fl,1].!=0)
-            if length(unique(bnd_flag[fl,1][ia]))>1
-                ibo = maximum(unique(bnd_flag[fl,1][ia]))
-                bp = bxy[ibbo[ibo],:]
-                newp = Vector(undef,length(bxy[ibbo[ibo],1])+1);
-                for j=1:length(newp)
-                    if bnd_flag[fl,2][ia][j]==1
-                        newp[j] = [[xa[fl][j],bp[1]],[ya[fl][j],bp[1]]]
-                    else
-                        newp[j] = [[xb[fl][j],bp[1]],[yb[fl][j],bp[1]]]
-                    end
-                end
+    new_p = Vector(undef,2*length(xyc))
+    new_p1 = Vector(undef,2*length(xyc))
+    k=0
+    for i=1:length(xyc)
+        global k
+        if length(bnd_ind[i])>0
+            if allunique(bnd_ind[i])
+                #разные границы
+                println("$i a")
+                k+=2;
+                ia = bnd_flg[i]
+                ib = bnd_ind2[i]
+
+                ibo = Set(bnd_ind[i])
+                bp = bxy[findall((x->issetequal(ibo,x)).(ibbo)),:]
+
+                new_p[k-1] = [[xab[CartesianIndex.(ib,ia)][1],bp[1]],[yab[CartesianIndex.(ib,ia)][1],bp[2]]]
+                new_p[k] = [[bp[1],xab[CartesianIndex.(ib,ia)][2]],[bp[2],yab[CartesianIndex.(ib,ia)[2]]]]
+                new_p1[k-1] = [xyc[i][1],xyc[i][2]]
+                new_p1[k] = [xyc[i][1],xyc[i][2]]
             else
-                newp = Vector(undef,1);
-                for j=1:length(ia)
-                    if bnd_flag[fl,2][ia][j]==1
-                        newp[1] = [[xa[fl][j],0],[ya[fl][j],0]]
-                    else
-                        newp[1] = [[xb[fl][j],0],[yb[fl][j],0]]
-                    end
-                    if bnd_flag[fl,2][ia][j]==2
-                        newp[1][1][2] = xa[fl][j];
-                        newp[1][2][2] = ya[fl][j];
-                    else
-                        newp[1][1][2] = xb[fl][j];
-                        newp[1][2][2] = yb[fl][j];
-                    end
-                end
+                #одна граница
+                println("$i b")
+                k+=1;
+                ia = bnd_flg[i]
+                ib = bnd_ind2[i]
+                #xab[CartesianIndex.(ib,ia)]
+                #yab[CartesianIndex.(ib,ia)]
+                new_p[k] = [xab[CartesianIndex.(ib,ia)],yab[CartesianIndex.(ib,ia)]]
+                new_p1[k] = [xyc[i][1],xyc[i][2]]
             end
-            pnts[i] = [pnts[i],newp]
         end
-
     end
 
     return nothing
