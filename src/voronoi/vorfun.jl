@@ -23,21 +23,21 @@ function makeCell(xy, bnd)
 
     Cv = [i for i in chan]
     Cv1, bnd_flag = makeCellvsBondary(Cv,bx,by);
-
+    Cv1 = getPointToCell(Cv1,bx,by,bnd_flag)
     rc = makeRC(Cv1,x,y)
 
     return tess, rc, Cv1, Cv
 end
-function getPointToCell(Cv,xc,yc)
-    xca = map(v->v._generator_a._x,Cv1)
-    xcb = map(v->v._generator_b._x,Cv1)
-    yca = map(v->v._generator_a._y,Cv1)
-    ycb = map(v->v._generator_b._y,Cv1)
+function getPointToCell(Cv,bx,by,bnd_flag)
+    xca = map(v->v._generator_a._x,Cv)
+    xcb = map(v->v._generator_b._x,Cv)
+    yca = map(v->v._generator_a._y,Cv)
+    ycb = map(v->v._generator_b._y,Cv)
 
-    xa = map(v->v._a._x,Cv1)
-    xb = map(v->v._b._x,Cv1)
-    ya = map(v->v._a._y,Cv1)
-    yb = map(v->v._b._y,Cv1)
+    xa = map(v->v._a._x,Cv)
+    xb = map(v->v._b._x,Cv)
+    ya = map(v->v._a._y,Cv)
+    yb = map(v->v._b._y,Cv)
 
     xcf = vcat(xca,xcb)
     ycf = vcat(yca,ycb)
@@ -45,6 +45,8 @@ function getPointToCell(Cv,xc,yc)
 
     xab = hcat(xa,xb)
     yab = hcat(ya,yb)
+
+    bxy = hcat(bx,by);
 
     fl = falses(length(xca))
     pnts = Vector(undef,length(xyc))
@@ -68,11 +70,11 @@ function getPointToCell(Cv,xc,yc)
     new_p1 = Vector(undef,2*length(xyc))
     k=0
     for i=1:length(xyc)
-        global k
+        #global k
         if length(bnd_ind[i])>0
             if allunique(bnd_ind[i])
                 #разные границы
-                println("$i a")
+                #println("$i a")
                 k+=2;
                 ia = bnd_flg[i]
                 ib = bnd_ind2[i]
@@ -82,23 +84,32 @@ function getPointToCell(Cv,xc,yc)
 
                 new_p[k-1] = [[xab[CartesianIndex.(ib,ia)][1],bp[1]],[yab[CartesianIndex.(ib,ia)][1],bp[2]]]
                 new_p[k] = [[bp[1],xab[CartesianIndex.(ib,ia)][2]],[bp[2],yab[CartesianIndex.(ib,ia)[2]]]]
-                new_p1[k-1] = [xyc[i][1],xyc[i][2]]
-                new_p1[k] = [xyc[i][1],xyc[i][2]]
+                new_p1[k-1] = [[xyc[i][1],0.],[xyc[i][2],0.]]
+                new_p1[k] = [[xyc[i][1],0.],[xyc[i][2],0.]]
             else
                 #одна граница
-                println("$i b")
+                #println("$i b")
                 k+=1;
                 ia = bnd_flg[i]
                 ib = bnd_ind2[i]
                 #xab[CartesianIndex.(ib,ia)]
                 #yab[CartesianIndex.(ib,ia)]
                 new_p[k] = [xab[CartesianIndex.(ib,ia)],yab[CartesianIndex.(ib,ia)]]
-                new_p1[k] = [xyc[i][1],xyc[i][2]]
+                new_p1[k] = [[xyc[i][1],0.],[xyc[i][2],0.]]
             end
         end
     end
 
-    return nothing
+    Cv2 = Vector(undef,k)
+    for (k,v) in enumerate(zip(new_p[1:k],new_p1[1:k]))
+        Cv2[k]=VoronoiDelaunay.VoronoiEdge(
+                    Point2D(v[1][1][1], v[1][2][1]),
+                    Point2D(v[1][1][2], v[1][2][2]),
+                    Point2D(v[2][1][1], v[2][2][1]),
+                    Point2D(v[2][1][2], v[2][2][2]))
+    end
+
+    return vcat(Cv,Cv2)
 end
 function makeCellvsBondary(Cv,bx,by)
     Cv, ia, xy_ab, ab = remPointOutBondary(Cv,bx,by);
@@ -180,4 +191,21 @@ function remPointOutBondary(Cv,bx,by)
 
     xy = hcat(xa,ya,xb,yb)
    return Cv[ic], ia, xy[ic,:][ia,:], ab[ic][ia]
+end
+
+function getFromCV(Cv)
+    xca = map(v->v._generator_a._x,Cv)
+    xcb = map(v->v._generator_b._x,Cv)
+    yca = map(v->v._generator_a._y,Cv)
+    ycb = map(v->v._generator_b._y,Cv)
+
+    xyc_ab = hcat(xca,xcb,yca,ycb)
+
+    xa = map(v->v._a._x,Cv)
+    xb = map(v->v._b._x,Cv)
+    ya = map(v->v._a._y,Cv)
+    yb = map(v->v._b._y,Cv)
+
+    xy_ab = hcat(xa,xb,ya,yb)
+    return  xyc_ab, xy_ab
 end
