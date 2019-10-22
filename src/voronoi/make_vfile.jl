@@ -7,9 +7,10 @@ function make_vfile(OUT,rc,Cv)
     i_ed = (x->x[1]).(findall(ic_ab.==i_bnd)); #Индексы связей, которые являются границей;
 
     bnd_ind = zeros(Int32,length(i_ed),2)
+    ebo = eage_order(xye,ie_ab,i_bnd,ic_ab); порядок индексов границы иджей
 
-    ind_1 = findfirst((x->all(x.==(1.,1.))).(xye));
-    ia = (x->x[1]).(findall(ie_ab.==ind_1));
+
+
     bnd_ind[1,1] = setdiff(ic_ab[ia[1],:],i_bnd)[1];
 
     ib = findall(any(bnd_ind[1,1].==ic_ab,dims=2)[:] .& any(ind_1.==ie_ab,dims=2)[:])
@@ -62,6 +63,33 @@ function make_vfile(OUT,rc,Cv)
     make_wellCon(wxy,xy,OUT[3])
 
     return
+end
+
+function eage_order(xye,ie_ab,i_bnd,ic_ab)
+    next_p = zeros(Int32,length(xye))
+    next_p[1] = findfirst((x->all(x.==(1.,1.))).(xye)); #индекс первой точки обхода
+
+    # ia = (x->x[1]).(findall(ie_ab.==next_p[1]));
+    # next_p[2] = setdiff(ie_ab[ia[1],:],ind_1)[1]
+
+    fl = true
+    k=0
+    while fl
+        k+=1;
+        #println(xye[next_p[k]])
+        ia = (x->x[1]).(findall(ie_ab.==next_p[k])); #индексы связей где встречается эта точка
+        #println("$k $(length(ia))")
+        ia=ia[any(ic_ab[ia,:].==i_bnd,dims=2)[:]]
+
+        v = setdiff(ie_ab[ia,:],next_p[1:k]);
+        if length(v)>0
+            next_p[k+1] = v[1]
+        else
+            fl = false
+        end
+
+    end
+    return next_p[1:k]
 end
 
 function get_index(xy_ab)
