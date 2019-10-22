@@ -7,8 +7,8 @@ function make_vfile(OUT,rc,Cv)
     i_ed = (x->x[1]).(findall(ic_ab.==i_bnd)); #Индексы связей, которые являются границей;
 
     bnd_ind = zeros(Int32,length(i_ed),2)
-    ebo = eage_order(xye,ie_ab,i_bnd,ic_ab); порядок индексов границы иджей
-
+    ebo = eage_order(xye,ie_ab,i_bnd,ic_ab); #порядок индексов границы иджей из xye
+    indexin(ie_ab,ebo)
 
 
     bnd_ind[1,1] = setdiff(ic_ab[ia[1],:],i_bnd)[1];
