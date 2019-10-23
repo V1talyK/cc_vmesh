@@ -1,7 +1,9 @@
-using VoronoiDelaunay, Gadfly
+using VoronoiDelaunay, Gadfly, Dates
 include("vorfun.jl")
 include("../geomlibs.jl")
+include("../libs.jl")
 
+OUT = [joinpath("4_mesh.tsv"),joinpath("5_geom.tsv"),joinpath("6_wellCon.tsv")]
 
 xy = 100*rand(16,2);
 xy0 = collect(Iterators.product(0:10:99,0:10:99))[:];
@@ -10,6 +12,11 @@ xy0 = collect(Iterators.product(0:10:99,0:10:99))[:];
 
 bnd  = [0 0; 100 0; 100 100; 0 100; 0 0]
 tess, rc, Cv1, Cv = makeCell(xy,bnd)
+make_vfile(OUT,rc,CV1)
+
+
+
+
 
 x, y = getplotxy(Cv1)
 x, y = getplotxy(Cv)
@@ -17,7 +24,8 @@ xt, yt = getplotxy(delaunayedges(tess))
 
 
 set_default_plot_size(15cm, 15cm)
-plot(x=x, y=y, Geom.path, Coord.cartesian(xmin=0, xmax=3, ymin=0, ymax=3))
+plot(x=x, y=y, Geom.path, Coord.cartesian(xmin=0.5, xmax=2.5, ymin=0.5, ymax=2.5))
+
 
 plot(layer(x=x, y=y, Geom.path),
      layer(x=xt, y=yt, Geom.path,Theme(default_color="orange")),
@@ -49,3 +57,6 @@ for i=1:length(xyc)
     end
 
 end
+
+plot(layer(x=(x->x[1]).(xyc)[pbo],y=(x->x[2]).(xyc)[pbo], Geom.path),
+     layer(x=x, y=y, Geom.path,Theme(default_color="orange")))
