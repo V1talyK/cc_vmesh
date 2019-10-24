@@ -1,4 +1,4 @@
-function make_vfile(OUT,rc,Cv)
+function make_vfile(OUT,wxy,rc,Cv, exy)
     xyc_ab, xy_ab = getFromCV(Cv1);
     ic_ab, xyc = get_index(xyc_ab); #индексы центров и координаты
     ie_ab, xye = get_index(xy_ab);  #индексы границ и координаты
@@ -15,11 +15,15 @@ function make_vfile(OUT,rc,Cv)
     ib2 = ie_ab[ib,:]
 
     xyc = xyc[setdiff(1:length(xyc),i_bnd)]
-    make_mesh(xyc,pbo,OUT[1])
-    make_geom(xy,OUT[2])
-    make_wellCon(wxy,xy,OUT[3])
 
-    return
+    xyc = mk_decmprs(xyc,exy)
+    xye = mk_decmprs(xye,exy)
+    
+    make_mesh(xyc,pbo,OUT[1])
+    make_geom(xyc,rc,ie_ab, ic_ab, xye, OUT[2])
+    make_wellCon(wxy,xyc,OUT[3])
+
+    return true
 end
 
 function eage_order(xye,ie_ab,i_bnd,ic_ab)
@@ -109,4 +113,74 @@ function make_mesh(xy,pbo,OUT)
     ioW1 = Base.open(OUT,"w");
     writeToPipe(ioW1, id, X, Y, bnd, hz, vxB[:], vyB[:])
     close(ioW1)
+end
+
+function make_wellCon(wxy,xy,OUT)
+    nw = length(wxy)
+    w1 = zeros(Int64,nw)
+    for i=1:nw
+        w1[i] = findmin(map(x->sum((x.-wxy[i]).^2),xy[:]))[2]
+    end
+
+    w2 = collect(1:nw)
+    ioW = Base.open(OUT,"w");
+    writeToPipe(ioW, w2, w1)
+    close(ioW)
+end
+
+function make_geom(xy,rc,ie_ab, ic_ab, xye,OUT)
+    n = length(xy)
+    id = collect(1:n)
+
+    #id50 = reshape(id,50,50)
+    brc, lrc = distFromRC(rc,ie_ab, ic_ab, xye);
+    c = id[:]
+    r = Vector(undef,n)
+    b = Vector(undef,n)
+    l = Vector(undef,n)
+    area_edge = Vector(undef,n)
+    area = zeros(Float64,n)
+    for ic in c
+        ni = (x->x[1]).(findall(rc.==ic))
+        r[ic] = circshift(rc,(0,1))[rc.==ic]
+        b[ic] = brc[ni]
+        l[ic] = lrc[ni]
+        eo = o2(ie_ab[any(ic.==ic_ab,dims=2)[:],:])
+        area[ic] = polyaria(vcat(map(x->[x[1],x[2]], xye[eo])'...))
+        area_edge[ic] = b[ic]*10;
+    end
+
+    ztop = fill(1000.,n)
+    zbot = fill(1010.,n)
+
+
+    r = Ar2Str(r)
+    b = Ar2Str(b)
+    area_edge = Ar2Str(area_edge)
+    l = Ar2Str(l)
+
+    ioW = Base.open(OUT,"w");
+    writeToPipe(ioW, c, r, b, area_edge, l, ztop, zbot, area)
+    close(ioW)
+end
+
+function Ar2Str(r)
+    r = map(x->"$x",r)
+    r= map(x->replace(x, "[" => "\""),r)
+    r = map(x->replace(x, "]" => "\""),r)
+    return r
+end
+function dist(vxy)
+    sqrt(sum((vxy[1].-vxy[2]).^2))
+end
+
+function distFromRC(rc,ie_ab, ic_ab, xye)
+    db = zeros(Float64,size(rc,1))
+    dl = zeros(Float64,size(rc,1))
+    for i=1:size(rc,1)
+        poe = ie_ab[findfirst(all((rc[i,1].==ic_ab) .| (rc[i,2].==ic_ab),dims=2)[:]),:]
+        db[i]=dist(xye[poe])
+        dl[i]=dist(xyc[rc[i,:]])
+    end
+    return db, dl
 end

@@ -4,13 +4,20 @@ function makeCell(xy, bnd)
     xy = xy[fl,:];
 
     exy = extrema(bnd,dims=1)
-    x = 1 .+(xy[:,1].-exy[1][1])./exy[1][2];
-    y = 1 .+(xy[:,2].-exy[2][1])./exy[2][2];
+    #x = 1 .+(xy[:,1].-exy[1][1])./exy[1][2];
+    #y = 1 .+(xy[:,2].-exy[2][1])./exy[2][2];
+
+    # bx = 1 .+(bnd[:,1].-exy[1][1])./exy[1][2];
+    # by = 1 .+(bnd[:,2].-exy[2][1])./exy[2][2];
+
+    x = mk_cmprs(view(xy,:,1),exy[1])
+    y = mk_cmprs(view(xy,:,2),exy[2])
+
     x = clamp.(x,1+eps(Float64),2-2*eps(Float64))
     y = clamp.(y,1+eps(Float64),2-2*eps(Float64))
 
-    bx = 1 .+(bnd[:,1].-exy[1][1])./exy[1][2];
-    by = 1 .+(bnd[:,2].-exy[2][1])./exy[2][2];
+    bx = mk_cmprs(view(bnd,:,1),exy[1])
+    by = mk_cmprs(view(bnd,:,2),exy[2])
 
     tess = DelaunayTessellation(length(x))
     a = Point2D[Point(i[1], i[2]) for i in zip(x,y)]
@@ -24,9 +31,15 @@ function makeCell(xy, bnd)
     Cv = [i for i in chan]
     Cv1, bnd_flag = makeCellvsBondary(Cv,bx,by);
     Cv1 = getPointToCell(Cv1,bx,by,bnd_flag)
-    rc = makeRC(Cv1,x,y)
 
-    return tess, rc, Cv1, Cv
+    xyc_ab, xy_ab = getFromCV(Cv1);
+    ic_ab, xyc = get_index(xyc_ab);
+    i_bnd = findall((x->all(x==(0.,0.))).(xyc))[1];
+    xyc = xyc[setdiff(1:length(xyc),i_bnd)]
+
+    rc = makeRC(Cv1,map(x->x[1],xyc),map(x->x[2],xyc))
+
+    return tess, rc, Cv1, Cv, exy
 end
 function getPointToCell(Cv,bx,by,bnd_flag)
     xca = map(v->v._generator_a._x,Cv)
@@ -209,3 +222,9 @@ function getFromCV(Cv)
     xy_ab = hcat(xa,xb,ya,yb)
     return  xyc_ab, xy_ab
 end
+
+@inline mk_cmprs(x,x0) = 1 .+ (x .-x0[1])./x0[2];
+@inline mk_decmprs(x,x0) = x0[1] .+ (x .-1) .* x0[2];
+
+@inline mk_decmprs(x::Array{Tuple{Float64,Float64},1},x0) =
+    map(x->(mk_decmprs(x[1],x0[1]),mk_decmprs(x[2],x0[2])),x);

@@ -2,8 +2,8 @@ using VoronoiDelaunay, Gadfly, Dates
 include("vorfun.jl")
 include("../geomlibs.jl")
 include("../libs.jl")
-
-OUT = [joinpath("4_mesh.tsv"),joinpath("5_geom.tsv"),joinpath("6_wellCon.tsv")]
+r = joinpath(dirname(dirname(dirname(Base.source_path()))),"data")
+OUT = [joinpath(r,"4_mesh.tsv"),joinpath(r,"5_geom.tsv"),joinpath(r,"6_wellCon.tsv")]
 
 xy = 100*rand(16,2);
 xy0 = collect(Iterators.product(0:10:99,0:10:99))[:];
@@ -11,10 +11,10 @@ xy0 = collect(Iterators.product(0:10:99,0:10:99))[:];
   for (k,v) in enumerate(xy0) xy[k,:].=v; end
 
 bnd  = [0 0; 100 0; 100 100; 0 100; 0 0]
-tess, rc, Cv1, Cv = makeCell(xy,bnd)
-make_vfile(OUT,rc,CV1)
+tess, rc, Cv1, Cv, exy = makeCell(xy,bnd)
 
-
+wxy = collect(Iterators.partition(xy',2))
+make_vfile(OUT,wxy,rc,Cv1, exy)
 
 
 
@@ -60,3 +60,7 @@ end
 
 plot(layer(x=(x->x[1]).(xyc)[pbo],y=(x->x[2]).(xyc)[pbo], Geom.path),
      layer(x=x, y=y, Geom.path,Theme(default_color="orange")))
+
+plot(layer(x=(x->x[1]).(xyc)[pbo],y=(x->x[2]).(xyc)[pbo], Geom.path),
+     layer(x=(x->x[1]).(wxy),y=(x->x[2]).(wxy), Geom.point),
+     layer(x=mk_decmprs(x,exy[1]), y=mk_decmprs(y,exy[2]), Geom.path,Theme(default_color="orange")))
