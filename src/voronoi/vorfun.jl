@@ -21,23 +21,25 @@ function makeCell(xy, bnd)
 
     tess = DelaunayTessellation(length(x))
     a = Point2D[Point(i[1], i[2]) for i in zip(x,y)]
-    @time for i=1:length(a)
-        println(i)
-        push!(tess, a[i])
-    end
+    #@time for i=1:length(a)
+        #println(i)
+    @time push!(tess, a)
+    #end
 
     chan = voronoiedges(tess)
 
     Cv = [i for i in chan]
-    Cv1, bnd_flag = makeCellvsBondary(Cv,bx,by);
-    Cv1 = getPointToCell(Cv1,bx,by,bnd_flag)
+    @time Cv1, bnd_flag = makeCellvsBondary(Cv,bx,by);
+    @time Cv1 = getPointToCell(Cv1,bx,by,bnd_flag)
 
-    xyc_ab, xy_ab = getFromCV(Cv1);
+    @time xyc_ab, xy_ab = getFromCV(Cv1);
     ic_ab, xyc = get_index(xyc_ab);
     i_bnd = findall((x->all(x==(0.,0.))).(xyc))[1];
     xyc = xyc[setdiff(1:length(xyc),i_bnd)]
 
-    rc = makeRC(Cv1,map(x->x[1],xyc),map(x->x[2],xyc))
+    rc = ic_ab[all(ic_ab.!=i_bnd,dims=2)[:],:]
+
+    #@time rc = makeRC(Cv1,map(x->x[1],xyc),map(x->x[2],xyc))
 
     return tess, rc, Cv1, Cv, exy
 end
@@ -73,12 +75,15 @@ function getPointToCell(Cv,bx,by,bnd_flag)
     bnd_ind = Vector(undef,length(xyc))
     bnd_flg = Vector(undef,length(xyc))
     bnd_ind2 = Vector(undef,length(xyc))
-    for i=1:length(xyc)
+    println("12")
+    @time for i=1:length(xyc)
         fl.=false;
         ir = findall((view(xyc_ab,:,1).==xyc[i][1]) .& (view(xyc_ab,:,3).==xyc[i][2]))
         ic = findall((view(xyc_ab,:,2).==xyc[i][1]) .& (view(xyc_ab,:,4).==xyc[i][2]))
         fl[ir].=true;
         fl[ic].=true;
+
+
         bnd_ind[i] = bnd_flag[fl,1][bnd_flag[fl,1].!=0]
         bnd_flg[i] = bnd_flag[fl,2][bnd_flag[fl,1].!=0]
         bnd_ind2[i] = findall(fl)[bnd_flag[fl,1].!=0]
@@ -101,8 +106,8 @@ function getPointToCell(Cv,bx,by,bnd_flag)
                 bp = bxy[findall((x->issetequal(ibo,x)).(ibbo)),:]
                 CI = CartesianIndex.(ib,ia);
 
-                new_p[k-1] = [[xab[CI][1],bp[1]],[yab[CI]][1],bp[2]]]
-                new_p[k] = [[bp[1],xab[CI]][2]],[bp[2],yab[CI][2]]]]
+                new_p[k-1] = [[xab[CI][1],bp[1]],[yab[CI][1],bp[2]]]
+                new_p[k] = [[bp[1],xab[CI][2]],[bp[2],yab[CI][2]]]
 
                 new_p1[k-1] = [[xyc[i][1],0.],[xyc[i][2],0.]]
                 new_p1[k] = [[xyc[i][1],0.],[xyc[i][2],0.]]
@@ -204,7 +209,7 @@ function makeRC(Cv,xc,yc)
 
     rc = zeros(Int64,length(xg1),2)#Array{Int64,2}(undef,length(xg1),2)
     k=0
-    for i=1:length(xg1)
+    @time for i=1:length(xg1)
         ir = findall((xg1[i].==xc) .& (yg1[i].==yc))
         ic = findall((xg2[i].==xc) .& (yg2[i].==yc))
         if (length(ir)>0) .& (length(ic)>0)

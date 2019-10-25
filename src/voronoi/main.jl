@@ -7,13 +7,16 @@ include("../libs.jl")
 r = joinpath(dirname(dirname(dirname(Base.source_path()))),"data")
 OUT = [joinpath(r,"4_mesh.tsv"),joinpath(r,"5_geom.tsv"),joinpath(r,"6_wellCon.tsv")]
 
-xy = 100*rand(16,2);
+xy = 100*rand(1024,2);
 xy0 = collect(Iterators.product(0:10:99,0:10:99))[:];
   xy = zeros(Float64,length(xy0),2);
   for (k,v) in enumerate(xy0) xy[k,:].=v; end
 
 bnd  = [0 0; 100 0; 100 100; 0 100; 0 0]
-tess, rc, Cv1, Cv, exy = makeCell(xy,bnd)
+bnd  = [0 0; 100 0; 100 70; 70 100; 0 100; 0 0]
+bnd  = [0 0; 100 0; 100 100; 70 100; 70 70; 30 70; 30 100; 0 100; 0 0]
+
+@time tess, rc, Cv1, Cv, exy = makeCell(xy,bnd)
 
 wxy = collect(Iterators.partition(xy',2))
 make_vfile(OUT,wxy,rc,Cv1, exy)

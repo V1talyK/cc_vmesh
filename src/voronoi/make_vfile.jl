@@ -1,5 +1,5 @@
 function make_vfile(OUT,wxy,rc,Cv, exy)
-    xyc_ab, xy_ab = getFromCV(Cv1);
+    xyc_ab, xy_ab = getFromCV(Cv);
     ic_ab, xyc = get_index(xyc_ab); #индексы центров и координаты
     ie_ab, xye = get_index(xy_ab);  #индексы границ и координаты
 
@@ -18,8 +18,8 @@ function make_vfile(OUT,wxy,rc,Cv, exy)
 
     xyc = mk_decmprs(xyc,exy)
     xye = mk_decmprs(xye,exy)
-    
-    make_mesh(xyc,pbo,OUT[1])
+
+    make_mesh(xyc,pbo,ib1,ib2,OUT[1])
     make_geom(xyc,rc,ie_ab, ic_ab, xye, OUT[2])
     make_wellCon(wxy,xyc,OUT[3])
 
@@ -28,7 +28,10 @@ end
 
 function eage_order(xye,ie_ab,i_bnd,ic_ab)
     next_p = zeros(Int32,length(xye))
-    next_p[1] = findfirst((x->all(x.==(1.,1.))).(xye)); #индекс первой точки обхода
+
+    #индекс первой точки обхода
+    #next_p[1] = findfirst((x->all(x.==(1.25,1.25))).(xye));
+    next_p[1] = findmin(map(x->sum(x.^2),xye))[2]
 
     # ia = (x->x[1]).(findall(ie_ab.==next_p[1]));
     # next_p[2] = setdiff(ie_ab[ia[1],:],ind_1)[1]
@@ -84,7 +87,7 @@ function get_index(xy_ab)
     return reshape(ia,size(xy_ab,1),2), xy
 end
 
-function make_mesh(xy,pbo,OUT)
+function make_mesh(xy,pbo,ib1,ib2,OUT)
     n = length(xy)
     id = collect(1:length(xy))
     #xy =  convert(Array{Tuple{Float64,Float64},2},xy)
