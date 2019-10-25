@@ -19,7 +19,7 @@ function make_vfile(OUT,wxy,rc,Cv, exy)
     xyc = mk_decmprs(xyc,exy)
     xye = mk_decmprs(xye,exy)
 
-    make_mesh(xyc,pbo,ib1,ib2,OUT[1])
+    make_mesh(xyc,xye,pbo,ib1,ib2,OUT[1])
     make_geom(xyc,rc,ie_ab, ic_ab, xye, OUT[2])
     make_wellCon(wxy,xyc,OUT[3])
 
@@ -87,7 +87,7 @@ function get_index(xy_ab)
     return reshape(ia,size(xy_ab,1),2), xy
 end
 
-function make_mesh(xy,pbo,ib1,ib2,OUT)
+function make_mesh(xy,xye,pbo,ib1,ib2,OUT)
     n = length(xy)
     id = collect(1:length(xy))
     #xy =  convert(Array{Tuple{Float64,Float64},2},xy)
@@ -98,8 +98,8 @@ function make_mesh(xy,pbo,ib1,ib2,OUT)
     Y = map(x->x[2],xy[:]);
     bnd = bnd[:]
 
-    vxB = Vector{String}(undef,length(xyc))
-    vyB = Vector{String}(undef,length(xyc))
+    vxB = Vector{String}(undef,length(xy))
+    vyB = Vector{String}(undef,length(xy))
 
     vxB[:].="\\N"
     vyB[:].="\\N"
@@ -136,7 +136,7 @@ function make_geom(xy,rc,ie_ab, ic_ab, xye,OUT)
     id = collect(1:n)
 
     #id50 = reshape(id,50,50)
-    brc, lrc = distFromRC(rc,ie_ab, ic_ab, xye);
+    brc, lrc = distFromRC(rc,ie_ab, ic_ab, xy,xye);
     c = id[:]
     r = Vector(undef,n)
     b = Vector(undef,n)
@@ -177,7 +177,7 @@ function dist(vxy)
     sqrt(sum((vxy[1].-vxy[2]).^2))
 end
 
-function distFromRC(rc,ie_ab, ic_ab, xye)
+function distFromRC(rc,ie_ab, ic_ab, xyc, xye)
     db = zeros(Float64,size(rc,1))
     dl = zeros(Float64,size(rc,1))
     for i=1:size(rc,1)

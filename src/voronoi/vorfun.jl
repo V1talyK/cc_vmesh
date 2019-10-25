@@ -24,18 +24,18 @@ function makeCell(xy, bnd)
 
     tess = DelaunayTessellation(length(x))
     a = Point2D[Point(i[1], i[2]) for i in zip(x,y)]
-    @time for i=1:length(a)
-        println(i)
-        push!(tess, a[i])
-    end
-    #@time push!(tess, a)
+    # @time for i=1:length(a)
+    #     println(i)
+    #     push!(tess, a[i])
+    # end
+    @time push!(tess, a)
     chan = voronoiedges(tess)
 
     Cv = [i for i in chan]
-    @time Cv1, bnd_flag = makeCellvsBondary(Cv,bx,by);
-    @time Cv1 = getPointToCell(Cv1,bx,by,bnd_flag)
+    Cv1, bnd_flag = makeCellvsBondary(Cv,bx,by);
+    Cv1 = getPointToCell(Cv1,bx,by,bnd_flag)
 
-    @time xyc_ab, xy_ab = getFromCV(Cv1);
+    xyc_ab, xy_ab = getFromCV(Cv1);
     ic_ab, xyc = get_index(xyc_ab);
     i_bnd = findall((x->all(x==(0.,0.))).(xyc))[1];
     xyc = xyc[setdiff(1:length(xyc),i_bnd)]
