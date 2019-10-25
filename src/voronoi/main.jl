@@ -22,7 +22,6 @@ wxy = collect(Iterators.partition(xy',2))
 make_vfile(OUT,wxy,rc,Cv1, exy)
 
 
-
 x, y = getplotxy(Cv1)
 x, y = getplotxy(Cv)
 xt, yt = getplotxy(delaunayedges(tess))
@@ -69,3 +68,6 @@ plot(layer(x=(x->x[1]).(xyc)[pbo],y=(x->x[2]).(xyc)[pbo], Geom.path),
 plot(layer(x=(x->x[1]).(xyc)[pbo],y=(x->x[2]).(xyc)[pbo], Geom.path),
      layer(x=(x->x[1]).(wxy),y=(x->x[2]).(wxy), Geom.point),
      layer(x=mk_decmprs(x,exy[1]), y=mk_decmprs(y,exy[2]), Geom.path,Theme(default_color="orange")))
+
+plot(layer(x=wxy[:,1],y=wxy[:,2]),
+          layer(x=bnd[:,1], y=bnd[:,2], Geom.path,Theme(default_color="orange")))

@@ -1,4 +1,7 @@
 function makeCell(xy, bnd)
+    xy = mat2vec(xy);
+    xy = unique(xy);
+    xy = vec2mat(xy)
 
     fl = inPolygon(view(xy,:,1), view(xy,:,2), view(bnd,:,1), view(bnd,:,2))
     xy = xy[fl,:];
@@ -21,11 +24,11 @@ function makeCell(xy, bnd)
 
     tess = DelaunayTessellation(length(x))
     a = Point2D[Point(i[1], i[2]) for i in zip(x,y)]
-    #@time for i=1:length(a)
-        #println(i)
-    @time push!(tess, a)
-    #end
-
+    @time for i=1:length(a)
+        println(i)
+        push!(tess, a[i])
+    end
+    #@time push!(tess, a)
     chan = voronoiedges(tess)
 
     Cv = [i for i in chan]
@@ -255,8 +258,8 @@ function getFromCV(Cv)
     return  xyc_ab, xy_ab
 end
 
-@inline mk_cmprs(x,x0) = 1.25 .+ (x .-x0[1])./x0[2]*0.5;
-@inline mk_decmprs(x,x0) = x0[1] .+ 2*(x .-1.25) .* x0[2];
+@inline mk_cmprs(x,x0) = 1.25 .+ (x .-x0[1])./(x0[2]-x0[1])*0.5;
+@inline mk_decmprs(x,x0) = x0[1] .+ 2*(x .-1.25) .* (x0[2]-x0[1]);
 
 @inline mk_decmprs(x::Array{Tuple{Float64,Float64},1},x0) =
     map(x->(mk_decmprs(x[1],x0[1]),mk_decmprs(x[2],x0[2])),x);
@@ -292,4 +295,14 @@ function o2(A)
     else
         return A
     end
+end
+
+@inline mat2vec(xy) = collect(Iterators.zip(view(xy,:,1),view(xy,:,2)))
+@inline function vec2mat(xy)
+    wxy = zeros(Float64,length(xy),2)
+    for (k,v) in enumerate(xy)
+        wxy[k,:] .= v[:]
+        #wxy[k,2] = v[2]
+    end
+    return wxy
 end
