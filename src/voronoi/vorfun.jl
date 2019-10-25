@@ -13,8 +13,8 @@ function makeCell(xy, bnd)
     x = mk_cmprs(view(xy,:,1),exy[1])
     y = mk_cmprs(view(xy,:,2),exy[2])
 
-    x = clamp.(x,1+eps(Float64),2-2*eps(Float64))
-    y = clamp.(y,1+eps(Float64),2-2*eps(Float64))
+    #x = clamp.(x,1.25+eps(Float64),1.75-2*eps(Float64))
+    #y = clamp.(y,1.25+eps(Float64),1.75-2*eps(Float64))
 
     bx = mk_cmprs(view(bnd,:,1),exy[1])
     by = mk_cmprs(view(bnd,:,2),exy[2])
@@ -42,26 +42,31 @@ function makeCell(xy, bnd)
     return tess, rc, Cv1, Cv, exy
 end
 function getPointToCell(Cv,bx,by,bnd_flag)
-    xca = map(v->v._generator_a._x,Cv)
-    xcb = map(v->v._generator_b._x,Cv)
-    yca = map(v->v._generator_a._y,Cv)
-    ycb = map(v->v._generator_b._y,Cv)
+    # xca = map(v->v._generator_a._x,Cv)
+    # xcb = map(v->v._generator_b._x,Cv)
+    # yca = map(v->v._generator_a._y,Cv)
+    # ycb = map(v->v._generator_b._y,Cv)
+    #
+    # xa = map(v->v._a._x,Cv)
+    # xb = map(v->v._b._x,Cv)
+    # ya = map(v->v._a._y,Cv)
+    # yb = map(v->v._b._y,Cv)
+    #
+    # xcf = vcat(xca,xcb)
+    # ycf = vcat(yca,ycb)
 
-    xa = map(v->v._a._x,Cv)
-    xb = map(v->v._b._x,Cv)
-    ya = map(v->v._a._y,Cv)
-    yb = map(v->v._b._y,Cv)
+    xyc_ab, xy_ab = getFromCV(Cv);
+    xcf = xyc_ab[:,1:2][:];
+    ycf = xyc_ab[:,3:4][:];
 
-    xcf = vcat(xca,xcb)
-    ycf = vcat(yca,ycb)
     xyc = unique(collect(zip(xcf,ycf)))
 
-    xab = hcat(xa,xb)
-    yab = hcat(ya,yb)
+    xab = xy_ab[:,1:2];#hcat(xa,xb)
+    yab = xy_ab[:,3:4];#hcat(ya,yb)
 
     bxy = hcat(bx,by);
 
-    fl = falses(length(xca))
+    fl = falses(length(Cv))
     pnts = Vector(undef,length(xyc))
     ibbo = Set.(zip(collect(1:length(bx)-1),[length(bx)-1; collect(1:length(bx)-2)]))
 
@@ -70,8 +75,8 @@ function getPointToCell(Cv,bx,by,bnd_flag)
     bnd_ind2 = Vector(undef,length(xyc))
     for i=1:length(xyc)
         fl.=false;
-        ir = findall((xca.==xyc[i][1]) .& (yca.==xyc[i][2]))
-        ic = findall((xcb.==xyc[i][1]) .& (ycb.==xyc[i][2]))
+        ir = findall((view(xyc_ab,:,1).==xyc[i][1]) .& (view(xyc_ab,:,3).==xyc[i][2]))
+        ic = findall((view(xyc_ab,:,2).==xyc[i][1]) .& (view(xyc_ab,:,4).==xyc[i][2]))
         fl[ir].=true;
         fl[ic].=true;
         bnd_ind[i] = bnd_flag[fl,1][bnd_flag[fl,1].!=0]
@@ -94,9 +99,31 @@ function getPointToCell(Cv,bx,by,bnd_flag)
 
                 ibo = Set(bnd_ind[i])
                 bp = bxy[findall((x->issetequal(ibo,x)).(ibbo)),:]
+                CI = CartesianIndex.(ib,ia);
 
-                new_p[k-1] = [[xab[CartesianIndex.(ib,ia)][1],bp[1]],[yab[CartesianIndex.(ib,ia)][1],bp[2]]]
-                new_p[k] = [[bp[1],xab[CartesianIndex.(ib,ia)][2]],[bp[2],yab[CartesianIndex.(ib,ia)[2]]]]
+                new_p[k-1] = [[xab[CI][1],bp[1]],[yab[CI]][1],bp[2]]]
+                new_p[k] = [[bp[1],xab[CI]][2]],[bp[2],yab[CI][2]]]]
+
+                new_p1[k-1] = [[xyc[i][1],0.],[xyc[i][2],0.]]
+                new_p1[k] = [[xyc[i][1],0.],[xyc[i][2],0.]]
+            elseif length(bnd_ind[i])==4
+                k+=2;
+                ia = bnd_flg[i]
+                ib = bnd_ind2[i]
+
+                ibo = unique(bnd_ind[i])
+                ic = indexin(bnd_ind[i],ibo)
+
+                CI = CartesianIndex.(ib,ia);
+                fic1 = findall(ic.==1)
+                fic2 = findall(ic.==2)
+                new_p[k-1] = [[xab[CI][fic1[1]],xab[CI][fic1[2]]],
+                                [yab[CI][fic1[1]],yab[CI][fic1[2]]]]
+
+
+                new_p[k] = [[xab[CI][fic2[1]],xab[CI][fic2[2]]],
+                                [yab[CI][fic2[1]],yab[CI][fic2[2]]]]
+
                 new_p1[k-1] = [[xyc[i][1],0.],[xyc[i][2],0.]]
                 new_p1[k] = [[xyc[i][1],0.],[xyc[i][2],0.]]
             else
@@ -223,8 +250,41 @@ function getFromCV(Cv)
     return  xyc_ab, xy_ab
 end
 
-@inline mk_cmprs(x,x0) = 1 .+ (x .-x0[1])./x0[2];
-@inline mk_decmprs(x,x0) = x0[1] .+ (x .-1) .* x0[2];
+@inline mk_cmprs(x,x0) = 1.25 .+ (x .-x0[1])./x0[2]*0.5;
+@inline mk_decmprs(x,x0) = x0[1] .+ 2*(x .-1.25) .* x0[2];
 
 @inline mk_decmprs(x::Array{Tuple{Float64,Float64},1},x0) =
     map(x->(mk_decmprs(x[1],x0[1]),mk_decmprs(x[2],x0[2])),x);
+
+function o1(A)
+    #Выстраиваем по порядку индексы в парах, пара следующая
+    if length(A)>2
+        B = zeros(Int32,size(A,1)+1);
+        B[1]=setdiff(A[1,:],A[2,:])[1]
+        for i=1:size(A,1)-1
+            B[i+1] = intersect(A[i+1,:],A[i,:])[1]
+        end
+        B[end]=setdiff(A[end,:],A[end-1,:])[1]
+        return B
+    else
+        return A
+    end
+end
+
+function o2(A)
+    #Выстраиваем по порядку индексы в парах, пара может быть любая
+    v = 2:-1:1
+    if length(A)>2
+        B = zeros(Int32,size(A,1));
+        B[1:2]=A[1,:]
+        il = collect(2:size(A,1))
+        for i=3:size(A,1)
+            fil = findfirst(B[i-1].==A[il,:]);
+            B[i] = A[il[fil[1]],v[fil[2]]]
+            setdiff!(il,il[fil[1]])
+        end
+        return B
+    else
+        return A
+    end
+end

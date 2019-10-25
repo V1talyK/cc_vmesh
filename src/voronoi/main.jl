@@ -1,7 +1,9 @@
 using VoronoiDelaunay, Gadfly, Dates
 include("vorfun.jl")
+include("make_vfile.jl")
 include("../geomlibs.jl")
 include("../libs.jl")
+
 r = joinpath(dirname(dirname(dirname(Base.source_path()))),"data")
 OUT = [joinpath(r,"4_mesh.tsv"),joinpath(r,"5_geom.tsv"),joinpath(r,"6_wellCon.tsv")]
 
@@ -24,7 +26,7 @@ xt, yt = getplotxy(delaunayedges(tess))
 
 
 set_default_plot_size(15cm, 15cm)
-plot(x=x, y=y, Geom.path, Coord.cartesian(xmin=0.5, xmax=2.5, ymin=0.5, ymax=2.5))
+plot(x=x, y=y, Geom.path, Coord.cartesian(xmin=1., xmax=2., ymin=1., ymax=2.))
 
 
 plot(layer(x=x, y=y, Geom.path),
