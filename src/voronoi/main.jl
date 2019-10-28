@@ -3,21 +3,19 @@ include("vorfun.jl")
 include("make_vfile.jl")
 include("../geomlibs.jl")
 include("../libs.jl")
+include("test.jl")
 
 r = joinpath(dirname(dirname(dirname(Base.source_path()))),"data")
 OUT = [joinpath(r,"4_mesh.tsv"),joinpath(r,"5_geom.tsv"),joinpath(r,"6_wellCon.tsv")]
 
-xy = 100*rand(1024,2);
-xy0 = collect(Iterators.product(0:10:99,0:10:99))[:];
-  xy = zeros(Float64,length(xy0),2);
-  for (k,v) in enumerate(xy0) xy[k,:].=v; end
+#xy = 100*rand(1024,2);
 
-@time tess, rc, Cv1, Cv, exy = makeCell(xy,bnd)
-make_vfile(OUT,wxy,rc,Cv1, exy)
+@time tess, rc, Cv, Cv0, exy = makeCell(xy,bnd)
+make_vfile(OUT,wi,wxy,rc,Cv, exy)
 
 
-x, y = getplotxy(Cv1)
 x, y = getplotxy(Cv)
+x, y = getplotxy(Cv0)
 xt, yt = getplotxy(delaunayedges(tess))
 
 
@@ -27,8 +25,6 @@ plot(x=x, y=y, Geom.path, Coord.cartesian(xmin=1., xmax=2., ymin=1., ymax=2.))
 
 plot(layer(x=x, y=y, Geom.path),
      layer(x=xt, y=yt, Geom.path,Theme(default_color="orange")),
-     #layer(x=[Cv1[42]._generator_a._x,Cv1[42]._generator_b._x],
-     #y=[Cv1[42]._generator_a._y,Cv1[42]._generator_b._y]),
      #layer(x=map(x->x[1],xyc),y=map(x->x[2],xyc)),
      layer(x=map(x->x[1],xyc)[bc],y=map(x->x[2],xyc)[bc]),
      Coord.cartesian(xmin=0.5, xmax=2.5, ymin=0.5, ymax=2.5))

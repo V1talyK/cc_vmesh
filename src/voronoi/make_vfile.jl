@@ -1,4 +1,4 @@
-function make_vfile(OUT,wxy,rc,Cv, exy)
+function make_vfile(OUT,wi,wxy,rc,Cv, exy)
     xyc_ab, xy_ab = getFromCV(Cv);
     ic_ab, xyc = get_index(xyc_ab); #индексы центров и координаты
     ie_ab, xye = get_index(xy_ab);  #индексы границ и координаты
@@ -21,7 +21,7 @@ function make_vfile(OUT,wxy,rc,Cv, exy)
 
     make_mesh(xyc,xye,pbo,ib1,ib2,OUT[1])
     make_geom(xyc,rc,ie_ab, ic_ab, xye, OUT[2])
-    make_wellCon(wxy,xyc,OUT[3])
+    make_wellCon(wi,wxy,xyc,OUT[3])
 
     return true
 end
@@ -118,16 +118,17 @@ function make_mesh(xy,xye,pbo,ib1,ib2,OUT)
     close(ioW1)
 end
 
-function make_wellCon(wxy,xy,OUT)
-    nw = length(wxy)
+function make_wellCon(wi,wxy,xy,OUT)
+    nw = length(wi)
     w1 = zeros(Int64,nw)
+    wxy = mat2vec(wxy)
     for i=1:nw
         w1[i] = findmin(map(x->sum((x.-wxy[i]).^2),xy[:]))[2]
     end
-
-    w2 = collect(1:nw)
+    w2 = wi;#collect(1:nw)
+    w21 = unique(hcat(w2,w1),dims=1);
     ioW = Base.open(OUT,"w");
-    writeToPipe(ioW, w2, w1)
+    writeToPipe(ioW, view(w21,:,1), view(w21,:,2))
     close(ioW)
 end
 
