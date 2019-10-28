@@ -10,7 +10,7 @@ OUT = [joinpath(r,"4_mesh.tsv"),joinpath(r,"5_geom.tsv"),joinpath(r,"6_wellCon.t
 
 #xy = 100*rand(1024,2);
 
-@time tess, rc, Cv, Cv0, exy = makeCell(xy,bnd)
+@time tess, rc, Cv, Cv0, exy = makeCell(wxy,bnd)
 make_vfile(OUT,wi,wxy,rc,Cv, exy)
 
 

@@ -41,7 +41,7 @@ function makeCell(xy, bnd)
     xyc = xyc[setdiff(1:length(xyc),i_bnd)]
 
     rc = ic_ab[all(ic_ab.!=i_bnd,dims=2)[:],:]
-
+    rc = convert(Array{Int64,2},rc)
     #@time rc = makeRC(Cv1,map(x->x[1],xyc),map(x->x[2],xyc))
 
     return tess, rc, Cv1, Cv, exy

@@ -112,8 +112,13 @@ function make_mesh(xy,xye,pbo,ib1,ib2,OUT)
         vyB[i] =  join(((x->"$(x[2])").(txy)),", ")
     end
 
+    for i=1:length(vxB)
+        vxB[i] = "\"$(vxB[i])\""
+        vyB[i] = "\"$(vyB[i])\""
+    end
+
     hz = fill("1",n)
-    ioW1 = Base.open(OUT,"w");
+    ioW1 = Base.open(OUT[1],"w");
     writeToPipe(ioW1, id, X, Y, bnd, hz, vxB[:], vyB[:])
     close(ioW1)
 end
